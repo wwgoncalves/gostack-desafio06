@@ -31,22 +31,50 @@ export default class User extends Component {
 
   state = {
     stars: [],
-    loading: false,
+    loading: true,
+    starsCurrentPage: 1,
+    hasNextPage: false,
   };
 
   async componentDidMount() {
-    const { navigation } = this.props;
-    const user = navigation.getParam('user');
+    await this.fetchStarredRepositories();
+  }
 
+  async componentDidUpdate(_, prevState) {
+    const { starsCurrentPage } = this.state;
+    if (prevState.starsCurrentPage !== starsCurrentPage) {
+      await this.fetchStarredRepositories();
+    }
+  }
+
+  fetchStarredRepositories = async () => {
     this.setState({ loading: true });
 
-    const response = await api.get(`/users/${user.login}/starred`);
+    const { navigation } = this.props;
+    const { stars, starsCurrentPage } = this.state;
+    const user = navigation.getParam('user');
+
+    const response = await api.get(`/users/${user.login}/starred`, {
+      params: {
+        page: starsCurrentPage,
+      },
+    });
 
     this.setState({
-      stars: response.data,
+      stars: stars.length > 0 ? [...stars, ...response.data] : response.data,
       loading: false,
+      hasNextPage: response.headers.link
+        ? String(response.headers.link).indexOf('rel="next"') >= 0
+        : false,
     });
-  }
+  };
+
+  handleStarsEndOfList = () => {
+    const { starsCurrentPage, hasNextPage } = this.state;
+    if (hasNextPage) {
+      this.setState({ starsCurrentPage: starsCurrentPage + 1 });
+    }
+  };
 
   render() {
     const { navigation } = this.props;
@@ -63,7 +91,10 @@ export default class User extends Component {
         </Header>
 
         {loading && <StarsActivityIndicator />}
+
         <Stars
+          onEndReachedThreshold={2}
+          onEndReached={this.handleStarsEndOfList}
           data={stars}
           keyExtractor={star => String(star.id)}
           renderItem={({ item }) => (

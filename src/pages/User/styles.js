@@ -80,5 +80,11 @@ export const Author = styled.Text`
 export const StarsActivityIndicator = styled.ActivityIndicator.attrs({
   color: '#7159c1',
 })`
-  margin-top: 20px;
+  position: absolute;
+  justify-content: center;
+  align-items: center;
+  align-self: center;
+  top: 60%;
+  left: 55%;
+  z-index: 10;
 `;
