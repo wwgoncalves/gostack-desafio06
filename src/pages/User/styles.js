@@ -88,3 +88,8 @@ export const StarsActivityIndicator = styled.ActivityIndicator.attrs({
   left: 55%;
   z-index: 10;
 `;
+
+export const CustomRefreshControl = styled.RefreshControl.attrs({
+  colors: ['#7159c1'],
+  tintColor: '#7159c1',
+})``;

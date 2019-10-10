@@ -16,6 +16,7 @@ import {
   Title,
   Author,
   StarsActivityIndicator,
+  CustomRefreshControl,
 } from './styles';
 
 export default class User extends Component {
@@ -34,6 +35,7 @@ export default class User extends Component {
     loading: true,
     starsCurrentPage: 1,
     hasNextPage: false,
+    refreshing: false,
   };
 
   async componentDidMount() {
@@ -41,8 +43,11 @@ export default class User extends Component {
   }
 
   async componentDidUpdate(_, prevState) {
-    const { starsCurrentPage } = this.state;
-    if (prevState.starsCurrentPage !== starsCurrentPage) {
+    const { starsCurrentPage, refreshing } = this.state;
+    if (
+      prevState.starsCurrentPage !== starsCurrentPage ||
+      (prevState.refreshing === false && refreshing === true)
+    ) {
       await this.fetchStarredRepositories();
     }
   }
@@ -66,19 +71,28 @@ export default class User extends Component {
       hasNextPage: response.headers.link
         ? String(response.headers.link).indexOf('rel="next"') >= 0
         : false,
+      refreshing: false,
     });
   };
 
-  handleStarsEndOfList = () => {
+  handleEndOfStarsList = () => {
     const { starsCurrentPage, hasNextPage } = this.state;
     if (hasNextPage) {
       this.setState({ starsCurrentPage: starsCurrentPage + 1 });
     }
   };
 
+  refreshList = () => {
+    this.setState({
+      stars: [],
+      starsCurrentPage: 1,
+      refreshing: true,
+    });
+  };
+
   render() {
     const { navigation } = this.props;
-    const { stars, loading } = this.state;
+    const { stars, loading, refreshing } = this.state;
 
     const user = navigation.getParam('user');
 
@@ -90,11 +104,19 @@ export default class User extends Component {
           <Bio>{user.bio}</Bio>
         </Header>
 
-        {loading && <StarsActivityIndicator />}
+        {loading && !refreshing && <StarsActivityIndicator />}
 
         <Stars
+          refreshControl={
+            <CustomRefreshControl
+              onRefresh={this.refreshList}
+              refreshing={refreshing}
+            />
+          }
+          onRefresh={this.refreshList}
+          refreshing={refreshing}
           onEndReachedThreshold={2}
-          onEndReached={this.handleStarsEndOfList}
+          onEndReached={this.handleEndOfStarsList}
           data={stars}
           keyExtractor={star => String(star.id)}
           renderItem={({ item }) => (
